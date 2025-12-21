@@ -185,7 +185,7 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-gray-800 mb-6 text-center">
-          Mortgage Payment Calculator
+          Housing Cost Calculator
         </h1>
 
         {/* Summary Bar */}
