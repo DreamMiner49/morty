@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   calculateMonthlyPayment,
   calculateTotalPayment,
@@ -8,6 +8,13 @@ import {
   parseCurrency,
   generateAmortizationSchedule,
 } from './utils/mortgageCalculations';
+import {
+  getAllScenarios,
+  saveScenario,
+  loadScenario,
+  deleteScenario,
+  exportScenarios,
+} from './utils/scenarioStorage';
 
 function App() {
   // Tab state
@@ -52,6 +59,18 @@ function App() {
 
   // Amortization schedule
   const [showAmortization, setShowAmortization] = useState(false);
+
+  // Scenario management state
+  const [savedScenarios, setSavedScenarios] = useState([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showManageModal, setShowManageModal] = useState(false);
+  const [scenarioName, setScenarioName] = useState('');
+  const [currentScenarioName, setCurrentScenarioName] = useState(null);
+
+  // Load saved scenarios on mount
+  useEffect(() => {
+    setSavedScenarios(getAllScenarios());
+  }, []);
 
   // Helper function to format number inputs with commas
   const formatNumberInput = (value) => {
@@ -181,12 +200,158 @@ function App() {
     }
   };
 
+  // Scenario management functions
+  const getCurrentState = () => ({
+    activeTab,
+    loanAmount,
+    existingMortgage,
+    housePrice,
+    downPaymentType1,
+    downPaymentPercent1,
+    downPaymentDollar1,
+    downPaymentType2,
+    downPaymentPercent2,
+    downPaymentDollar2,
+    interestRate1,
+    loanTerm1,
+    propertyTax1,
+    homeownersInsurance1,
+    customCharges1,
+    interestRate2,
+    loanTerm2,
+    propertyTax2,
+    homeownersInsurance2,
+    customCharges2,
+    monthlyRent,
+    rentersInsurance,
+    rentalYears,
+    yearlyRentalIncrease,
+  });
+
+  const handleSaveScenario = () => {
+    if (!scenarioName.trim()) {
+      alert('Please enter a scenario name');
+      return;
+    }
+    try {
+      const scenario = saveScenario(scenarioName, getCurrentState());
+      setSavedScenarios(getAllScenarios());
+      setCurrentScenarioName(scenarioName);
+      setScenarioName('');
+      setShowSaveModal(false);
+      alert(`Scenario "${scenario.name}" saved successfully!`);
+    } catch (error) {
+      alert('Error saving scenario. Please try again.');
+    }
+  };
+
+  const handleLoadScenario = (id) => {
+    const scenario = loadScenario(id);
+    if (!scenario) {
+      alert('Error loading scenario');
+      return;
+    }
+    const { data } = scenario;
+    setActiveTab(data.activeTab);
+    setLoanAmount(data.loanAmount);
+    setExistingMortgage(data.existingMortgage);
+    setHousePrice(data.housePrice);
+    setDownPaymentType1(data.downPaymentType1);
+    setDownPaymentPercent1(data.downPaymentPercent1);
+    setDownPaymentDollar1(data.downPaymentDollar1);
+    setDownPaymentType2(data.downPaymentType2);
+    setDownPaymentPercent2(data.downPaymentPercent2);
+    setDownPaymentDollar2(data.downPaymentDollar2);
+    setInterestRate1(data.interestRate1);
+    setLoanTerm1(data.loanTerm1);
+    setPropertyTax1(data.propertyTax1);
+    setHomeownersInsurance1(data.homeownersInsurance1);
+    setCustomCharges1(data.customCharges1);
+    setInterestRate2(data.interestRate2);
+    setLoanTerm2(data.loanTerm2);
+    setPropertyTax2(data.propertyTax2);
+    setHomeownersInsurance2(data.homeownersInsurance2);
+    setCustomCharges2(data.customCharges2);
+    setMonthlyRent(data.monthlyRent);
+    setRentersInsurance(data.rentersInsurance);
+    setRentalYears(data.rentalYears);
+    setYearlyRentalIncrease(data.yearlyRentalIncrease);
+    setCurrentScenarioName(scenario.name);
+    alert(`Scenario "${scenario.name}" loaded successfully!`);
+  };
+
+  const handleDeleteScenario = (id) => {
+    const scenario = savedScenarios.find((s) => s.id === id);
+    if (confirm(`Are you sure you want to delete "${scenario.name}"?`)) {
+      deleteScenario(id);
+      setSavedScenarios(getAllScenarios());
+      if (currentScenarioName === scenario.name) {
+        setCurrentScenarioName(null);
+      }
+    }
+  };
+
+  const handleExportScenarios = () => {
+    exportScenarios();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-800 mb-6 text-center">
+        <h1 className="text-4xl font-bold text-gray-800 mb-2 text-center">
           Housing Cost Calculator
         </h1>
+
+        {/* Scenario Management Buttons */}
+        <div className="flex justify-center items-center gap-3 mb-6">
+          <button
+            onClick={() => setShowSaveModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+            Save Scenario
+          </button>
+
+          {savedScenarios.length > 0 && (
+            <div className="relative">
+              <select
+                onChange={(e) => e.target.value && handleLoadScenario(e.target.value)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-md appearance-none pr-10 cursor-pointer"
+                defaultValue=""
+              >
+                <option value="" disabled>Load Scenario</option>
+                {savedScenarios.map((scenario) => (
+                  <option key={scenario.id} value={scenario.id} className="bg-white text-gray-800">
+                    {scenario.name}
+                  </option>
+                ))}
+              </select>
+              <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+            </div>
+          )}
+
+          {savedScenarios.length > 0 && (
+            <button
+              onClick={() => setShowManageModal(true)}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-md flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              Manage ({savedScenarios.length})
+            </button>
+          )}
+
+          {currentScenarioName && (
+            <span className="px-3 py-2 bg-purple-100 text-purple-800 rounded-lg font-medium text-sm">
+              Current: {currentScenarioName}
+            </span>
+          )}
+        </div>
 
         {/* Summary Bar */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
@@ -1270,6 +1435,130 @@ function App() {
             )}
           </div>
         </div>
+
+        {/* Save Scenario Modal */}
+        {showSaveModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Save Scenario</h2>
+              <p className="text-gray-600 mb-4">
+                Give your scenario a name to save all current settings.
+              </p>
+              <input
+                type="text"
+                value={scenarioName}
+                onChange={(e) => setScenarioName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSaveScenario()}
+                placeholder="e.g., Dream Home, Condo Option, etc."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSaveScenario}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSaveModal(false);
+                    setScenarioName('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Manage Scenarios Modal */}
+        {showManageModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">Manage Scenarios</h2>
+                <button
+                  onClick={() => setShowManageModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {savedScenarios.length === 0 ? (
+                <p className="text-gray-600 text-center py-8">
+                  No saved scenarios yet. Click "Save Scenario" to create one!
+                </p>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <button
+                      onClick={handleExportScenarios}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Export All Scenarios
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {savedScenarios.map((scenario) => (
+                      <div
+                        key={scenario.id}
+                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-800 text-lg">
+                              {scenario.name}
+                            </h3>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Saved: {new Date(scenario.savedAt).toLocaleDateString()} at{' '}
+                              {new Date(scenario.savedAt).toLocaleTimeString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                handleLoadScenario(scenario.id);
+                                setShowManageModal(false);
+                              }}
+                              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium"
+                            >
+                              Load
+                            </button>
+                            <button
+                              onClick={() => handleDeleteScenario(scenario.id)}
+                              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-medium"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowManageModal(false)}
+                  className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
