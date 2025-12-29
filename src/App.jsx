@@ -14,6 +14,7 @@ import {
   loadScenario,
   deleteScenario,
   exportScenarios,
+  importScenarios,
 } from './utils/scenarioStorage';
 
 function App() {
@@ -293,6 +294,27 @@ function App() {
 
   const handleExportScenarios = () => {
     exportScenarios();
+  };
+
+  const handleImportScenarios = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const jsonString = e.target.result;
+        const count = importScenarios(jsonString);
+        setSavedScenarios(getAllScenarios());
+        alert(`Successfully imported ${count} scenario(s)!`);
+        // Reset the file input
+        event.target.value = '';
+      } catch (error) {
+        alert('Error importing scenarios. Please make sure the file is a valid scenario export.');
+        event.target.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -1499,12 +1521,26 @@ function App() {
               </div>
 
               {savedScenarios.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">
-                  No saved scenarios yet. Click "Save Scenario" to create one!
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">
+                    No saved scenarios yet. Click "Save Scenario" to create one!
+                  </p>
+                  <label className="inline-flex px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm items-center gap-2 cursor-pointer">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Import Scenarios
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportScenarios}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               ) : (
                 <>
-                  <div className="mb-4">
+                  <div className="mb-4 flex gap-3">
                     <button
                       onClick={handleExportScenarios}
                       className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm flex items-center gap-2"
@@ -1514,6 +1550,19 @@ function App() {
                       </svg>
                       Export All Scenarios
                     </button>
+
+                    <label className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm flex items-center gap-2 cursor-pointer">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      Import Scenarios
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportScenarios}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
 
                   <div className="space-y-3">
